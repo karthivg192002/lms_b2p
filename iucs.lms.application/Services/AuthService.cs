@@ -58,7 +58,7 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Token = refreshToken,
             DeviceBindingId = loginDto.DeviceId ?? "",
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
         };
 
         await _sessionRepo.AddAsync(session);
@@ -70,7 +70,8 @@ public class AuthService : IAuthService
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30),
+            ExpiresTime = 30
         };
     }
 
@@ -177,7 +178,7 @@ public class AuthService : IAuthService
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
+            expires: DateTime.UtcNow.AddMinutes(30),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
