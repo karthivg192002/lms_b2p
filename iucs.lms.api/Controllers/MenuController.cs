@@ -53,7 +53,7 @@ namespace iucs.lms.api.Controllers
         [HttpGet("get-user-access-menu")]
         public async Task<IActionResult> GetSidebar()
         {
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userId = Guid.Parse(User.FindFirst("userId")!.Value);
 
             var menus = await _service.GetUserMenus(userId);
 
