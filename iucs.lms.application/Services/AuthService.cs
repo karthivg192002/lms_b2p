@@ -10,7 +10,11 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 
 namespace iucs.lms.api.Services;
-
+public interface IAuthService
+{
+    Task<TokenDto> LoginAsync(LoginDto loginDto);
+    Task<UserDto> RegisterAsync(RegisterDto registerDto);
+}
 public class AuthService : IAuthService
 {
     private readonly IRepository<User> _userRepository;

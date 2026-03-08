@@ -18,7 +18,6 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Teacher")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetAllUsers()
     {
         var users = await _userService.GetAllUsersAsync();
@@ -26,7 +25,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<UserDto>> GetUser(int id)
+    public async Task<ActionResult<UserDto>> GetUser(Guid id)
     {
         var user = await _userService.GetUserByIdAsync(id);
         if (user == null)
@@ -36,16 +35,21 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto createUserDto)
     {
-        var user = await _userService.CreateUserAsync(createUserDto);
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+        try
+        {
+            await _userService.CreateUserAsync(createUserDto);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto updateUserDto)
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserDto updateUserDto)
     {
         try
         {
@@ -59,8 +63,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<IActionResult> DeleteUser(Guid id)
     {
         try
         {

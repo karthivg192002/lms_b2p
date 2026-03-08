@@ -8,6 +8,8 @@ public class MenuBase : BaseEntity
     public string Url { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
     public Guid? ParentId { get; set; }
+    public int Sequence { get; set; }
+    public bool IsVisible { get; set; } = true;
 }
 
 public class Menu : MenuBase

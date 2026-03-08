@@ -7,13 +7,15 @@ using iucs.lms.domain.Data;
 using iucs.lms.domain.Repositories;
 using iucs.lms.api.Mappings;
 using iucs.lms.api.Services;
+using iucs.lms.application.Services;
+using iucs.lms.application.Helper.Middleware;
+using iucs.lms.application.Helper.DataSeeder;
+using iucs.lms.domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
 
-//builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var lmsConnection = builder.Configuration.GetValue<string>("LMSDESIGN");
@@ -27,7 +29,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
-
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddControllers();
@@ -78,6 +81,19 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    await DataSeeder.SeedAsync(
+        services.GetRequiredService<IRepository<Role>>(),
+        services.GetRequiredService<IRepository<Menu>>(),
+        services.GetRequiredService<IRepository<User>>(),
+        services.GetRequiredService<IRepository<UserRole>>(),
+        services.GetRequiredService<IRepository<RoleMenu>>()
+    );
+}
+
 // Development tools
 if (app.Environment.IsDevelopment())
 {
@@ -96,6 +112,7 @@ app.UseCors("lmsCors");
 
 app.UseAuthentication();
 app.UseAuthorization();
+//app.UseMiddleware<PermissionMiddleware>();
 
 app.MapControllers();
 
