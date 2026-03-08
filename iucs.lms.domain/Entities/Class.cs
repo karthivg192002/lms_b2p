@@ -1,15 +1,16 @@
+using iucs.lms.domain.Entities.Common;
+
 namespace iucs.lms.domain.Entities;
 
-public class Class
+public class ClassBase : BaseEntity
 {
-    public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    
-    // Foreign Key
     public int BoardId { get; set; }
+}
+
+public class Class : ClassBase
+{
     public Board Board { get; set; } = null!;
-    
-    // Navigation properties
     public ICollection<Subject> Subjects { get; set; } = new List<Subject>();
 }
