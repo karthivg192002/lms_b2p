@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using iucs.lms.domain.Entities;
+using Npgsql.NameTranslation;
 
 namespace iucs.lms.domain.Data;
 
@@ -66,5 +67,36 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        SnakeCaseDatabase(modelBuilder);
+    }
+
+    private void SnakeCaseDatabase(ModelBuilder modelBuilder)
+    {
+        var mapper = new NpgsqlSnakeCaseNameTranslator();
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            entity.SetTableName(mapper.TranslateMemberName(entity.GetTableName()));
+
+            foreach (var property in entity.GetProperties())
+            {
+                property.SetColumnName(mapper.TranslateMemberName(property.Name));
+            }
+
+            foreach (var key in entity.GetKeys())
+            {
+                key.SetName(mapper.TranslateMemberName(key.GetName()));
+            }
+
+            foreach (var fk in entity.GetForeignKeys())
+            {
+                fk.SetConstraintName(mapper.TranslateMemberName(fk.GetConstraintName()));
+            }
+
+            foreach (var index in entity.GetIndexes())
+            {
+                index.SetDatabaseName(mapper.TranslateMemberName(index.GetDatabaseName()));
+            }
+        }
     }
 }
