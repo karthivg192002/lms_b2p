@@ -30,7 +30,7 @@ public class AuthService : IAuthService
 
     public async Task<TokenDto> LoginAsync(LoginDto loginDto)
     {
-        var users = await _userRepository.FindAsync(u => u.Email == loginDto.Email);
+        var users = await _userRepository.FindAsync(u => u.Email == loginDto.Email || u.Username == loginDto.Email);
         var user = users.FirstOrDefault();
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
@@ -74,7 +74,7 @@ public class AuthService : IAuthService
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+            new Claim(JwtRegisteredClaimNames.Sub, user.Username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("id", user.Id.ToString()),
             new Claim(ClaimTypes.Role, user.UserType)
