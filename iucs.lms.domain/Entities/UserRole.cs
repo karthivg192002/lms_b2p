@@ -4,8 +4,8 @@ namespace iucs.lms.domain.Entities;
 
 public class UserRoleBase : BaseEntity
 {
-    public int UserId { get; set; }
-    public int RoleId { get; set; }
+    public Guid UserId { get; set; }
+    public Guid RoleId { get; set; }
 }
 
 public class UserRole : UserRoleBase

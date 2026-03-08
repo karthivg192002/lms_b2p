@@ -7,8 +7,8 @@ public class CourseContentBase : BaseEntity
     public string ContentType { get; set; } = string.Empty; // Video or PDF
     public string Title { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
-    public int CourseId { get; set; }
-    public int TopicId { get; set; }
+    public Guid CourseId { get; set; }
+    public Guid TopicId { get; set; }
 }
 
 public class CourseContent : CourseContentBase

@@ -9,7 +9,7 @@ public class QuizBase : BaseEntity
     public int TotalMarks { get; set; }
     public int PassingMarks { get; set; }
     public int DurationMinutes { get; set; }
-    public int? TopicId { get; set; }
+    public Guid? TopicId { get; set; }
 }
 
 public class Quiz : QuizBase

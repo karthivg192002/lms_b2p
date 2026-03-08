@@ -6,7 +6,7 @@ public class ClassBase : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public int BoardId { get; set; }
+    public Guid BoardId { get; set; }
 }
 
 public class Class : ClassBase

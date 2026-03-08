@@ -4,8 +4,8 @@ namespace iucs.lms.domain.Entities;
 
 public class RefundRequestBase : AuditEntity
 {
-    public int PaymentTransactionId { get; set; }
-    public int UserId { get; set; }
+    public Guid PaymentTransactionId { get; set; }
+    public Guid UserId { get; set; }
     public string Reason { get; set; } = string.Empty;
     public decimal RefundAmount { get; set; }
     public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected, Processed

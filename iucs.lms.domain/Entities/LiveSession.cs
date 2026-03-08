@@ -12,8 +12,8 @@ public enum LiveSessionStatus
 
 public class LiveSessionBase : BaseEntity
 {
-    public int BatchId { get; set; }
-    public int TeacherId { get; set; }    
+    public Guid BatchId { get; set; }
+    public Guid TeacherId { get; set; }    
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public string MeetingUrl { get; set; } = string.Empty;

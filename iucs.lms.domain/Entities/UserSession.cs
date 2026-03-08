@@ -4,7 +4,7 @@ namespace iucs.lms.domain.Entities;
 
 public class UserSessionBase : BaseEntity
 {
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
     public string Token { get; set; } = string.Empty;
     public string DeviceBindingId { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }

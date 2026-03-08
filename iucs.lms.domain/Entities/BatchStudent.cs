@@ -4,8 +4,8 @@ namespace iucs.lms.domain.Entities;
 
 public class BatchStudentBase : BaseEntity
 {
-    public int BatchId { get; set; }
-    public int StudentId { get; set; }
+    public Guid BatchId { get; set; }
+    public Guid StudentId { get; set; }
 }
 
 public class BatchStudent : BatchStudentBase

@@ -6,7 +6,7 @@ public class TopicBase : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public int SubjectId { get; set; }
+    public Guid SubjectId { get; set; }
 }
 
 public class Topic : TopicBase

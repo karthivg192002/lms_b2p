@@ -11,7 +11,7 @@ public class QuizQuestionBase : BaseEntity
     public string OptionD { get; set; } = string.Empty;
     public string CorrectOption { get; set; } = string.Empty;
     public int Marks { get; set; } = 1;
-    public int QuizId { get; set; }
+    public Guid QuizId { get; set; }
 }
 
 public class QuizQuestion : QuizQuestionBase

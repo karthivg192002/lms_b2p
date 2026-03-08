@@ -4,8 +4,8 @@ namespace iucs.lms.domain.Entities;
 
 public class RoleMenuBase : BaseEntity
 {
-    public int RoleId { get; set; }
-    public int MenuId { get; set; }
+    public Guid RoleId { get; set; }
+    public Guid MenuId { get; set; }
 }
 
 public class RoleMenu : RoleMenuBase
