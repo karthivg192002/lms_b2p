@@ -7,7 +7,7 @@ namespace iucs.lms.api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Require JWT authentication
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

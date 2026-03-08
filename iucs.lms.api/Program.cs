@@ -10,8 +10,19 @@ using iucs.lms.api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddEnvironmentVariables();
+
+//builder.Services.AddDbContext<ApplicationDbContext>(options =>
+//    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var lmsConnection = builder.Configuration.GetValue<string>("LMSDESIGN");
+
+    if (string.IsNullOrWhiteSpace(lmsConnection))
+        throw new Exception("LMSDESIGN environment variable is not set");
+
+    options.UseNpgsql(lmsConnection);
+});
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IAuthService, AuthService>();
