@@ -14,16 +14,23 @@ public interface IAuthService
 {
     Task<TokenDto> LoginAsync(LoginDto loginDto);
     Task<UserDto> RegisterAsync(RegisterDto registerDto);
+    Task<TokenDto> RefreshTokenAsync(RefreshTokenDto dto);
+    Task LogoutAsync(string refreshToken);
 }
 public class AuthService : IAuthService
 {
     private readonly IRepository<User> _userRepository;
+    private readonly IRepository<UserSession> _sessionRepo;
+    private readonly IRepository<UserDevice> _deviceRepo;
     private readonly IMapper _mapper;
     private readonly IConfiguration _config;
 
-    public AuthService(IRepository<User> userRepository, IMapper mapper, IConfiguration config)
+    public AuthService(IRepository<User> userRepository, IRepository<UserSession> sessionRepo,
+        IRepository<UserDevice> deviceRepo, IMapper mapper, IConfiguration config)
     {
         _userRepository = userRepository;
+        _sessionRepo = sessionRepo;
+        _deviceRepo = deviceRepo;
         _mapper = mapper;
         _config = config;
     }
@@ -43,10 +50,27 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("User account is disabled.");
         }
 
+        var accessToken = GenerateAccessToken(user);
+        var refreshToken = GenerateRefreshToken();
+
+        var session = new UserSession
+        {
+            UserId = user.Id,
+            Token = refreshToken,
+            DeviceBindingId = loginDto.DeviceId ?? "",
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+
+        await _sessionRepo.AddAsync(session);
+        await _sessionRepo.SaveChangesAsync();
+
+        await TrackDevice(user.Id, loginDto);
+
         return new TokenDto
         {
-            Token = GenerateJwtToken(user),
-            ExpiresAt = DateTime.UtcNow.AddDays(1)
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
         };
     }
 
@@ -67,7 +91,76 @@ public class AuthService : IAuthService
         return _mapper.Map<UserDto>(user);
     }
 
-    private string GenerateJwtToken(User user)
+    public async Task<TokenDto> RefreshTokenAsync(RefreshTokenDto dto)
+    {
+        var sessions = await _sessionRepo.FindAsync(x => x.Token == dto.RefreshToken && !x.IsRevoked);
+
+        var session = sessions.FirstOrDefault();
+
+        if (session == null || session.ExpiresAt < DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Invalid refresh token");
+
+        var user = await _userRepository.GetByIdAsync(session.UserId);
+
+        var newAccessToken = GenerateAccessToken(user!);
+        var newRefreshToken = GenerateRefreshToken();
+
+        session.Token = newRefreshToken;
+
+        _sessionRepo.Update(session);
+        await _sessionRepo.SaveChangesAsync();
+
+        return new TokenDto
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+        };
+    }
+
+    public async Task LogoutAsync(string refreshToken)
+    {
+        var sessions = await _sessionRepo.FindAsync(x => x.Token == refreshToken);
+
+        var session = sessions.FirstOrDefault();
+
+        if (session == null)
+            return;
+
+        session.IsRevoked = true;
+
+        _sessionRepo.Update(session);
+        await _sessionRepo.SaveChangesAsync();
+    }
+
+    private async Task TrackDevice(Guid userId, LoginDto dto)
+    {
+        var devices = await _deviceRepo.FindAsync(x =>
+            x.DeviceId == dto.DeviceId && x.UserId == userId);
+
+        var device = devices.FirstOrDefault();
+
+        if (device == null)
+        {
+            device = new UserDevice
+            {
+                UserId = userId,
+                DeviceId = dto.DeviceId ?? "",
+                DeviceType = dto.DeviceType ?? ""
+            };
+
+            await _deviceRepo.AddAsync(device);
+        }
+        else
+        {
+            device.LastLogin = DateTime.UtcNow;
+            _deviceRepo.Update(device);
+        }
+
+        await _deviceRepo.SaveChangesAsync();
+    }
+
+    private string GenerateAccessToken(User user)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "a_very_long_super_secret_key_12345!"));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -88,5 +181,10 @@ public class AuthService : IAuthService
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
     }
 }
