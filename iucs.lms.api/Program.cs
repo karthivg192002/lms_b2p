@@ -21,7 +21,7 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddControllers();
 
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
@@ -44,21 +44,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     };
 });
 
+// Routing
 builder.Services.AddRouting(options =>
 {
     options.LowercaseUrls = true;
     options.LowercaseQueryStrings = true;
 });
 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("lmsCors", policy =>
     {
-        policy
-            .WithOrigins("http://localhost:4200")
-            .AllowAnyMethod()
-            .WithHeaders()
-            .AllowCredentials();
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -79,12 +80,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseRouting();
+
 app.UseCors("lmsCors");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-//app.MapControllers();
+app.MapControllers();
 
 app.Run();
