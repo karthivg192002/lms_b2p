@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using iucs.lms.application.DTOs.Auth;
 using Newtonsoft.Json;
 using iucs.lms.application.DTOs.Communication;
+using iucs.lms.application.Services;
 
 namespace iucs.lms.api.Services;
 public interface IAuthService
@@ -22,7 +23,7 @@ public interface IAuthService
 
     #region OTP Methods
     Task SendOtpAsync(OtpDto dto);
-    Task<bool> VerifyOtpAsync(VerifyOtpDto dto);
+    Task<TokenDto> VerifyOtpAsync(VerifyOtpDto dto);
     #endregion
 
     #region Forgot Password
@@ -38,9 +39,11 @@ public class AuthService : IAuthService
     private readonly IRepository<AuthCode> _otpRepository;
     private readonly IMapper _mapper;
     private readonly IConfiguration _config;
+    private readonly ICommunicationService _communicationService;
 
     public AuthService(IRepository<User> userRepository, IRepository<UserSession> sessionRepo,
-        IRepository<UserDevice> deviceRepo, IMapper mapper, IConfiguration config, IRepository<AuthCode> otpRepository)
+        IRepository<UserDevice> deviceRepo, IMapper mapper, IConfiguration config, IRepository<AuthCode> otpRepository,
+        ICommunicationService communicationService)
     {
         _userRepository = userRepository;
         _sessionRepo = sessionRepo;
@@ -152,7 +155,7 @@ public class AuthService : IAuthService
     #region OTP Methods
     public async Task SendOtpAsync(OtpDto dto)
     {
-        var users = await _userRepository.FindAsync(x => x.Email == dto.Email);
+        var users = await _userRepository.FindAsync(x => x.Email == dto.Email || x.Username == dto.Email);
         var user = users.FirstOrDefault();
 
         if (user == null)
@@ -164,26 +167,30 @@ public class AuthService : IAuthService
         {
             UserId = user.Id,
             Code = otp,
-            Purpose = "ResetPassword",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+            Purpose = "Login",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            IsUsed = false
         };
 
         await _otpRepository.AddAsync(otpEntity);
         await _otpRepository.SaveChangesAsync();
 
-        // Send email
-        //await _emailService.SendAsync(user.Email, "Your OTP Code", $"Your OTP is {otp}");
+        // Send OTP Email/SMS
+        await _communicationService.SendOtpAsync(user.Username, otp);
     }
-    public async Task<bool> VerifyOtpAsync(VerifyOtpDto dto)
+    public async Task<TokenDto> VerifyOtpAsync(VerifyOtpDto dto)
     {
-        var users = await _userRepository.FindAsync(x => x.Email == dto.Email);
+        var users = await _userRepository.FindAsync(x => x.Email == dto.Email || x.Username == dto.Email);
         var user = users.FirstOrDefault();
 
         if (user == null)
             throw new Exception("User not found");
 
-        var otps = await _otpRepository.FindAsync(x => x.UserId == user.Id && 
-            x.Code == dto.Otp && !x.IsUsed);
+        var otps = await _otpRepository.FindAsync(x =>
+            x.UserId == user.Id &&
+            x.Code == dto.Otp &&
+            x.Purpose == "Login" &&
+            !x.IsUsed);
 
         var otp = otps.FirstOrDefault();
 
@@ -195,7 +202,27 @@ public class AuthService : IAuthService
         _otpRepository.Update(otp);
         await _otpRepository.SaveChangesAsync();
 
-        return true;
+        var accessToken = GenerateAccessToken(user);
+        var refreshToken = GenerateRefreshToken();
+
+        var session = new UserSession
+        {
+            UserId = user.Id,
+            Token = refreshToken,
+            DeviceBindingId = "",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30),
+        };
+
+        await _sessionRepo.AddAsync(session);
+        await _sessionRepo.SaveChangesAsync();
+
+        return new TokenDto
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30),
+            ExpiresTime = 30
+        };
     }
     #endregion
 
@@ -221,9 +248,9 @@ public class AuthService : IAuthService
         await _otpRepository.AddAsync(reset);
         await _otpRepository.SaveChangesAsync();
 
-        var resetLink = $"https://yourapp.com/reset-password?token={resetToken}";
+        var resetLink = $"{_config["FrontendUrl"]}{resetToken}";
 
-        //await _emailService.SendAsync(user.Email, "Reset Password", resetLink);
+        await _communicationService.SendResetMailEmailAsync(user.Username, resetLink);
     }
     public async Task ResetPasswordAsync(ResetPasswordDto dto)
     {
