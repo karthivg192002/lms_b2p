@@ -1,4 +1,5 @@
 ## Ignoring Visual Studio, JetBrains, and other editors
+*.vs/
 .vs/
 .idea/
 *.suo
@@ -15,9 +16,6 @@ _ReSharper*/
 ## Ignoring Environment Variables and Secrets
 .env
 *.usersecrets
-appsettings.json
-appsettings.development.json
-appsettings.Development.json
 
 ## Ignoring OS & Debug files
 Thumbs.db
