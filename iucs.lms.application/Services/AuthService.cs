@@ -307,39 +307,5 @@ public class AuthService : IAuthService
         return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
     }
 
-    public async Task SendWelcomeEmailAsync(string email, string name, string empCode, string password)
-    {
-        var baseUrl = _config["CommunicationUrl"];
-
-        using var httpClient = new HttpClient();
-
-        var templateResponse = await httpClient.GetAsync($"{baseUrl}Template/getbytemplate/WelcomeEmail");
-        templateResponse.EnsureSuccessStatusCode();
-
-        var templateJson = await templateResponse.Content.ReadAsStringAsync();
-        var template = JsonConvert.DeserializeObject<TemplateDto>(templateJson);
-
-        string subject = template.Subject;
-        string body = template.Body;
-
-        body = body.Replace("{name}", name)
-                   .Replace("{empCode}", empCode)
-                   .Replace("{email}", email)
-                   .Replace("{password}", password);
-
-        var communication = new CommunicationRequest
-        {
-            To = email,
-            Subject = subject,
-            Message = body,
-            Type = "smtp",
-        };
-
-        var jsonContent = new StringContent(JsonConvert.SerializeObject(communication), Encoding.UTF8, "application/json");
-
-        var response = await httpClient.PostAsync($"{baseUrl}sendcommunication/send", jsonContent);
-        response.EnsureSuccessStatusCode();
-    }
-
     #endregion
 }
