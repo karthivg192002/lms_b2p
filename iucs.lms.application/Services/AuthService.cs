@@ -8,6 +8,9 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using iucs.lms.application.DTOs.Auth;
+using Newtonsoft.Json;
+using iucs.lms.application.DTOs.Communication;
 
 namespace iucs.lms.api.Services;
 public interface IAuthService
@@ -16,23 +19,35 @@ public interface IAuthService
     Task<UserDto> RegisterAsync(RegisterDto registerDto);
     Task<TokenDto> RefreshTokenAsync(RefreshTokenDto dto);
     Task LogoutAsync(string refreshToken);
+
+    #region OTP Methods
+    Task SendOtpAsync(OtpDto dto);
+    Task<bool> VerifyOtpAsync(VerifyOtpDto dto);
+    #endregion
+
+    #region Forgot Password
+    Task ResetPasswordAsync(ResetPasswordDto dto);
+    Task ForgotPasswordAsync(ForgotPasswordDto dto);
+    #endregion
 }
 public class AuthService : IAuthService
 {
     private readonly IRepository<User> _userRepository;
     private readonly IRepository<UserSession> _sessionRepo;
     private readonly IRepository<UserDevice> _deviceRepo;
+    private readonly IRepository<AuthCode> _otpRepository;
     private readonly IMapper _mapper;
     private readonly IConfiguration _config;
 
     public AuthService(IRepository<User> userRepository, IRepository<UserSession> sessionRepo,
-        IRepository<UserDevice> deviceRepo, IMapper mapper, IConfiguration config)
+        IRepository<UserDevice> deviceRepo, IMapper mapper, IConfiguration config, IRepository<AuthCode> otpRepository)
     {
         _userRepository = userRepository;
         _sessionRepo = sessionRepo;
         _deviceRepo = deviceRepo;
         _mapper = mapper;
         _config = config;
+        _otpRepository = otpRepository;
     }
 
     public async Task<TokenDto> LoginAsync(LoginDto loginDto)
@@ -134,6 +149,108 @@ public class AuthService : IAuthService
         await _sessionRepo.SaveChangesAsync();
     }
 
+    #region OTP Methods
+    public async Task SendOtpAsync(OtpDto dto)
+    {
+        var users = await _userRepository.FindAsync(x => x.Email == dto.Email);
+        var user = users.FirstOrDefault();
+
+        if (user == null)
+            throw new Exception("User not found");
+
+        var otp = new Random().Next(100000, 999999).ToString();
+
+        var otpEntity = new AuthCode
+        {
+            UserId = user.Id,
+            Code = otp,
+            Purpose = "ResetPassword",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+        };
+
+        await _otpRepository.AddAsync(otpEntity);
+        await _otpRepository.SaveChangesAsync();
+
+        // Send email
+        //await _emailService.SendAsync(user.Email, "Your OTP Code", $"Your OTP is {otp}");
+    }
+    public async Task<bool> VerifyOtpAsync(VerifyOtpDto dto)
+    {
+        var users = await _userRepository.FindAsync(x => x.Email == dto.Email);
+        var user = users.FirstOrDefault();
+
+        if (user == null)
+            throw new Exception("User not found");
+
+        var otps = await _otpRepository.FindAsync(x => x.UserId == user.Id && 
+            x.Code == dto.Otp && !x.IsUsed);
+
+        var otp = otps.FirstOrDefault();
+
+        if (otp == null || otp.ExpiresAt < DateTime.UtcNow)
+            throw new Exception("Invalid or expired OTP");
+
+        otp.IsUsed = true;
+
+        _otpRepository.Update(otp);
+        await _otpRepository.SaveChangesAsync();
+
+        return true;
+    }
+    #endregion
+
+    #region Forgot Password
+    public async Task ForgotPasswordAsync(ForgotPasswordDto dto)
+    {
+        var users = await _userRepository.FindAsync(x => x.Email == dto.Email);
+
+        var user = users.FirstOrDefault();
+
+        if (user == null)
+            throw new Exception("User not found");
+
+        var resetToken = Guid.NewGuid().ToString();
+
+        var reset = new AuthCode
+        {
+            UserId = user.Id,
+            ResetToken = resetToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+        };
+
+        await _otpRepository.AddAsync(reset);
+        await _otpRepository.SaveChangesAsync();
+
+        var resetLink = $"https://yourapp.com/reset-password?token={resetToken}";
+
+        //await _emailService.SendAsync(user.Email, "Reset Password", resetLink);
+    }
+    public async Task ResetPasswordAsync(ResetPasswordDto dto)
+    {
+        var resets = await _otpRepository.FindAsync(x =>
+            x.ResetToken == dto.ResetToken &&
+            !x.IsUsed);
+
+        var reset = resets.FirstOrDefault();
+
+        if (reset == null || reset.ExpiresAt < DateTime.UtcNow)
+            throw new Exception("Invalid or expired reset token");
+
+        var user = await _userRepository.GetByIdAsync(reset.UserId);
+
+        user!.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+
+        reset.IsUsed = true;
+
+        _userRepository.Update(user);
+        _otpRepository.Update(reset);
+
+        await _userRepository.SaveChangesAsync();
+        await _otpRepository.SaveChangesAsync();
+    }
+    #endregion
+
+    #region Helper Methods
     private async Task TrackDevice(Guid userId, LoginDto dto)
     {
         var devices = await _deviceRepo.FindAsync(x =>
@@ -189,4 +306,40 @@ public class AuthService : IAuthService
     {
         return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
     }
+
+    public async Task SendWelcomeEmailAsync(string email, string name, string empCode, string password)
+    {
+        var baseUrl = _config["CommunicationUrl"];
+
+        using var httpClient = new HttpClient();
+
+        var templateResponse = await httpClient.GetAsync($"{baseUrl}Template/getbytemplate/WelcomeEmail");
+        templateResponse.EnsureSuccessStatusCode();
+
+        var templateJson = await templateResponse.Content.ReadAsStringAsync();
+        var template = JsonConvert.DeserializeObject<TemplateDto>(templateJson);
+
+        string subject = template.Subject;
+        string body = template.Body;
+
+        body = body.Replace("{name}", name)
+                   .Replace("{empCode}", empCode)
+                   .Replace("{email}", email)
+                   .Replace("{password}", password);
+
+        var communication = new CommunicationRequest
+        {
+            To = email,
+            Subject = subject,
+            Message = body,
+            Type = "smtp",
+        };
+
+        var jsonContent = new StringContent(JsonConvert.SerializeObject(communication), Encoding.UTF8, "application/json");
+
+        var response = await httpClient.PostAsync($"{baseUrl}sendcommunication/send", jsonContent);
+        response.EnsureSuccessStatusCode();
+    }
+
+    #endregion
 }

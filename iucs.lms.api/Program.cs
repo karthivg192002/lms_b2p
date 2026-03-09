@@ -96,14 +96,21 @@ using (var scope = app.Services.CreateScope())
 // Development tools
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    //app.MapOpenApi();
 
-    app.MapScalarApiReference(options =>
-    {
-        options.Title = "IUCS LMS API";
-        options.Theme = ScalarTheme.BluePlanet;
-    });
+    //app.MapScalarApiReference(options =>
+    //{
+    //    options.Title = "IUCS LMS API";
+    //    options.Theme = ScalarTheme.BluePlanet;
+    //});
 }
+app.MapOpenApi();
+
+app.MapScalarApiReference(options =>
+{
+    options.Title = "IUCS LMS API";
+    options.Theme = ScalarTheme.BluePlanet;
+});
 
 app.UseHttpsRedirection();
 

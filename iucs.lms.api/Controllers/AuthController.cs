@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using iucs.lms.api.DTOs.Auth;
 using iucs.lms.api.DTOs.Users;
 using iucs.lms.api.Services;
+using iucs.lms.application.DTOs.Auth;
 
 namespace iucs.lms.api.Controllers;
 
@@ -71,4 +72,63 @@ public class AuthController : ControllerBase
             return StatusCode(StatusCodes.Status401Unauthorized, ex.Message);
         }
     }
+    #region OTP Endpoints
+    [HttpPost("send-otp")]
+    public async Task<IActionResult> SendOtp(OtpDto dto)
+    {
+        try
+        {
+            await _authService.SendOtpAsync(dto);
+            return Ok("OTP sent");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpPost("verify-otp")]
+    public async Task<IActionResult> VerifyOtp(VerifyOtpDto dto)
+    {
+        try
+        {
+            var result = await _authService.VerifyOtpAsync(dto);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+    #endregion
+
+    #region Forget Password Endpoints
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    {
+        try
+        {
+            await _authService.ForgotPasswordAsync(dto);
+            return Ok("Reset link sent");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status401Unauthorized, ex.Message);
+        }
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    {
+        try
+        {
+            await _authService.ResetPasswordAsync(dto);
+            return Ok("Password updated");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status401Unauthorized, ex.Message);
+        }
+    }
+    #endregion
 }
