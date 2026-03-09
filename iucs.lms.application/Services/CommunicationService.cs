@@ -15,7 +15,7 @@ namespace iucs.lms.application.Services
         Task SendOtpAsync(string username, string otp);
         Task SendResetMailEmailAsync(string username, string resetLink);
     }
-    public class CommunicationService
+    public class CommunicationService : ICommunicationService
     {
         private readonly IConfiguration _config;
         public CommunicationService(IConfiguration config)
