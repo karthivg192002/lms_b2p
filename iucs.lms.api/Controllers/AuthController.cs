@@ -73,13 +73,14 @@ public class AuthController : ControllerBase
         }
     }
     #region OTP Endpoints
-    [HttpPost("send-otp")]
+
+    [HttpPost("login/send-otp")]
     public async Task<IActionResult> SendOtp(OtpDto dto)
     {
         try
         {
             await _authService.SendOtpAsync(dto);
-            return Ok("OTP sent");
+            return Ok("OTP sent successfully");
         }
         catch (Exception ex)
         {
@@ -87,17 +88,17 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("verify-otp")]
+    [HttpPost("login/verify-otp")]
     public async Task<IActionResult> VerifyOtp(VerifyOtpDto dto)
     {
         try
         {
-            var result = await _authService.VerifyOtpAsync(dto);
-            return Ok(result);
+            var token = await _authService.VerifyOtpAsync(dto);
+            return Ok(token);
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            return Unauthorized(ex.Message);
         }
     }
     #endregion

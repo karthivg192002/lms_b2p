@@ -1,16 +1,16 @@
+using System.Text;
+using iucs.lms.api.Mappings;
+using iucs.lms.api.Services;
+using iucs.lms.application.Helper.DataSeeder;
+using iucs.lms.application.Helper.ExceptionHelper;
+using iucs.lms.application.Services;
+using iucs.lms.domain.Data;
+using iucs.lms.domain.Entities;
+using iucs.lms.domain.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
-using System.Text;
-using iucs.lms.domain.Data;
-using iucs.lms.domain.Repositories;
-using iucs.lms.api.Mappings;
-using iucs.lms.api.Services;
-using iucs.lms.application.Services;
-using iucs.lms.application.Helper.Middleware;
-using iucs.lms.application.Helper.DataSeeder;
-using iucs.lms.domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,9 +28,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IBatchService, BatchService>();
+builder.Services.AddScoped<IBoardService, BoardService>();
+builder.Services.AddScoped<IClassService, ClassService>();
+builder.Services.AddScoped<ICommunicationService, CommunicationService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ILiveSessionService, LiveSessionService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IQuizService, QuizService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<ITopicService, TopicService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddControllers();
@@ -118,6 +130,7 @@ app.UseCors("lmsCors");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<ExceptionMiddleware>();
 //app.UseMiddleware<PermissionMiddleware>();
 
 app.MapControllers();
