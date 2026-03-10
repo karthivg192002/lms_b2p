@@ -77,14 +77,25 @@ builder.Services.AddRouting(options =>
 });
 
 // CORS
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("lmsCors", policy =>
+//     {
+//         policy.WithOrigins("http://localhost:4200")
+//               .AllowAnyMethod()
+//               .AllowAnyHeader()
+//               .AllowCredentials();
+//     });
+// });
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("lmsCors", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy
+            .AllowAnyOrigin()   // Allow requests from any domain
+            .AllowAnyMethod()   // Allow all HTTP methods (GET, POST, etc.)
+            .AllowAnyHeader();  // Allow any request headers
     });
 });
 
