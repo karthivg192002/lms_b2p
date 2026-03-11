@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RoleMenu> RoleMenus { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
     public DbSet<UserDevice> UserDevices { get; set; }
+    public DbSet<AuthCode> AuthCode { get; set; }
 
     // Curriculum
     public DbSet<Board> Boards { get; set; }

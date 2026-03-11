@@ -51,6 +51,7 @@ public class AuthService : IAuthService
         _mapper = mapper;
         _config = config;
         _otpRepository = otpRepository;
+        _communicationService = communicationService;
     }
 
     public async Task<TokenDto> LoginAsync(LoginDto loginDto)
@@ -176,7 +177,7 @@ public class AuthService : IAuthService
         await _otpRepository.SaveChangesAsync();
 
         // Send OTP Email/SMS
-        await _communicationService.SendOtpAsync(user.Username, otp);
+        await _communicationService.SendOtpAsync(user.Email, user.Username, otp);
     }
     public async Task<TokenDto> VerifyOtpAsync(VerifyOtpDto dto)
     {
@@ -250,7 +251,7 @@ public class AuthService : IAuthService
 
         var resetLink = $"{_config["FrontendUrl"]}{resetToken}";
 
-        await _communicationService.SendResetMailEmailAsync(user.Username, resetLink);
+        await _communicationService.SendResetMailEmailAsync(user.Email, user.Username, resetLink);
     }
     public async Task ResetPasswordAsync(ResetPasswordDto dto)
     {

@@ -12,8 +12,8 @@ namespace iucs.lms.application.Services
 {
     public interface ICommunicationService
     {
-        Task SendOtpAsync(string username, string otp);
-        Task SendResetMailEmailAsync(string username, string resetLink);
+        Task SendOtpAsync(string email, string username, string otp);
+        Task SendResetMailEmailAsync(string email, string username, string resetLink);
     }
     public class CommunicationService : ICommunicationService
     {
@@ -23,7 +23,7 @@ namespace iucs.lms.application.Services
             _config = config;
         }
 
-        public async Task SendOtpAsync(string username, string otp)
+        public async Task SendOtpAsync(string email, string username, string otp)
         {
             var baseUrl = _config["CommunicationUrl"];
 
@@ -44,7 +44,7 @@ namespace iucs.lms.application.Services
 
             var communication = new CommunicationRequest
             {
-                To = username,
+                To = email,
                 Subject = subject,
                 Message = body,
                 Type = "smtp",
@@ -56,7 +56,7 @@ namespace iucs.lms.application.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task SendResetMailEmailAsync(string username, string resetLink)
+        public async Task SendResetMailEmailAsync(string email, string username, string resetLink)
         {
             var baseUrl = _config["CommunicationUrl"];
 
@@ -76,7 +76,7 @@ namespace iucs.lms.application.Services
 
             var communication = new CommunicationRequest
             {
-                To = username,
+                To = email,
                 Subject = subject,
                 Message = body,
                 Type = "smtp",
